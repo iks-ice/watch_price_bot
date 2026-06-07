@@ -1,41 +1,53 @@
 import sys
-import os
 from dotenv import load_dotenv
 
-# Автоматично завантажуємо змінні з файлу .env у систему
+# 1. Найперший крок — завантаження середовища
 load_dotenv()
 
-# Імпортуємо логіку з інших файлів вже ПІСЛЯ завантаження .env
-from bot import init_db, bot as telegram_bot
-from price_checker import check_all_prices
+# 2. Імпорт налаштованого логгера
+from logger_config import get_logger
+logger = get_logger("main")
 
 def main():
-    # Ініціалізуємо базу даних
-    init_db()
-
-    # Перевіряємо аргументи командного рядка
+    # Валідація наявності аргументів CLI
     if len(sys.argv) < 2:
-        print("❌ Помилка: Вкажіть режим запуску.")
-        print("Використання:")
-        print("  python main.py bot     - запуск Telegram-бота")
-        print("  python main.py check   - запуск одноразової перевірки цін")
+        logger.error(
+            "Запуск відхилено: Не вказано режим роботи програми. "
+            "Використання: 'python main.py bot' або 'python main.py check'"
+        )
         sys.exit(1)
 
+    # Приведення аргументу до нижнього регістру (захист від sys.argv.lower() помилки)
     mode = sys.argv[1].lower()
 
     if mode == "bot":
-        print("🚀 Запуск Telegram-бота...")
-        print("Бот працює локально та чекає на ваші лінки.")
-        telegram_bot.infinity_polling()
+        # Лінивий імпорт для ізоляції телеграм-клієнта
+        from bot import init_db, bot as telegram_bot
+        
+        init_db()
+        logger.info("🚀 Запуск Telegram-бота у режимі Infinity Polling...")
+        try:
+            telegram_bot.infinity_polling()
+        except Exception:
+            logger.exception("Критичний збій у роботі циклу Telegram-бота")
+            sys.exit(1)
 
     elif mode == "check":
-        print("🔄 Запуск перевірки цін за допомогою Gemini LLM...")
-        check_all_prices()
-        print("✅ Перевірка всіх цін завершена!")
+        # Лінивий імпорт для ізоляції чекера цін
+        from bot import init_db
+        from price_checker import check_all_prices
+        
+        init_db()
+        logger.info("🔄 Запуск перевірки цін за допомогою Gemini LLM...")
+        try:
+            check_all_prices()
+            logger.info("✅ Перевірка всіх цін успішно завершена.")
+        except Exception:
+            logger.exception("Критичний збій під час виконання check_all_prices")
+            sys.exit(1)
 
     else:
-        print(f"❌ Невідомий режим: '{mode}'")
-        print("Доступні режими: 'bot' або 'check'")
+        logger.error(f"Запуск відхилено: Невідомий режим '{mode}'. Доступні режими: 'bot' або 'check'")
         sys.exit(1)
 
 if __name__ == "__main__":
