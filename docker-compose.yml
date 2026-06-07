@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Service 1: Continuous Telegram Bot polling client
+  price_bot:
+    build: .
+    container_name: price_tracker_bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      # Mount SQLite storage directory to persist database state
+      - ./data:/app/data
+      # Mount application logs directory for live hosting monitor
+      - ./logs:/app/logs
+    environment:
+      # Set the absolute database path for multi-container safe access
+      - DATABASE_PATH=/app/data/tracker.db
+    command: python main.py bot
+
+  # Service 2: Short-lived cron task runner for pricing updates
+  price_checker:
+    build: .
+    container_name: price_tracker_checker
+    # Ephemeral container execution, do not auto-restart
+    restart: "no"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - DATABASE_PATH=/app/data/tracker.db
+    command: python main.py check

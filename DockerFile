@@ -1,0 +1,25 @@
+# Use the official stable Playwright image for Python
+FROM ://microsoft.com
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Prevent Python from writing .pyc files and enable unbuffered logging
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Copy project dependency definitions
+COPY requirements.txt .
+
+# Upgrade pip and install package dependencies without caching
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy the entire project codebase into the container
+COPY . .
+
+# Pre-create dedicated directories for persistent storage and logs
+RUN mkdir -p logs data
+
+# Define the default command to start the Telegram bot client
+CMD ["python", "main.py", "bot"]

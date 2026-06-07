@@ -3,58 +3,59 @@ import sqlite3
 import pytest
 from dotenv import load_dotenv
 
-# Гарантуємо завантаження середовища перед ініціалізацією сервісів
+# Load local environment configuration profile keys
 load_dotenv()
 
 from logger_config import get_logger
-# Імпортуємо класи сервісів та головного чекера
+from database import DatabaseManager
 from services import PlaywrightParser, GeminiPriceExtractor
 from price_checker import PriceChecker
 
 logger = get_logger("tests.integration")
 
 def test_price_change_trigger_notification():
-    """Інтеграційний тест: підміна ціни в БД та запуск об'єктного чекера цін."""
-    db_path = "tracker.db"
+    """Integration test: forces database state manipulation to trigger the entire pipeline workflow."""
+    db_path = os.getenv("DATABASE_PATH", "tracker.db")
     
-    # Крок 1: Валідація наявності БД
-    assert os.path.exists(db_path), "Базу даних tracker.db не знайдено! Додайте товар через бота."
+    # Step 1: Ensure database profile metadata container storage file exists safely
+    assert os.path.exists(db_path), "Database target tracker.db was not located. Add an item via the bot engine first."
     
-    logger.info("🧪 [TEST] Запуск ООП-інтеграційного тесту зміни ціни...")
+    logger.info("🧪 [TEST] Initializing OOP-driven integration price alteration test pipeline...")
+    
+    # Step 2: Initialize database infrastructure container instance manager service
+    db_manager = DatabaseManager()
     
     try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Крок 2: Перевірка наявності тестових даних
-        cursor.execute("SELECT id FROM products")
-        products = cursor.fetchall()
-        if not products:
-            conn.close()
-            pytest.fail("База даних порожня. Додайте товар через бота перед запуском тесту.")
+        # Step 3: Manipulate current last_price record states safely using the connection pool manager
+        with db_manager.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM products")
+            products = cursor.fetchall()
             
-        logger.info(f"[TEST] Знайдено {len(products)} товарів. Мокаємо ціну на 1.0 UAH...")
-        
-        # Крок 3: Примусова підміна ціни для створення тригера
-        cursor.execute("UPDATE products SET last_price = 1.0")
-        conn.commit()
-        conn.close()
-        
+            if not products:
+                pytest.fail("Target storage schema is currently empty. Populate items manually via the bot first.")
+                
+            logger.info(f"[TEST] Located {len(products)} tracking records. Mocking baseline data to 1.0 UAH...")
+            
+            # Reset values to trigger inequality statement block evaluations later (new_price != last_price)
+            cursor.execute("UPDATE products SET last_price = 1.0")
+            conn.commit()
+            
     except sqlite3.Error as e:
-        pytest.fail(f"Помилка підготовки бази даних до тесту: {e}")
+        pytest.fail(f"Persistent storage preparation routine encountered a critical error exception: {e}")
     
-    # Крок 4: Збирання ООП-конструктора залежностей
-    logger.info("[TEST] Ініціалізація сервісів та об'єкта PriceChecker...")
+    # Step 4: Assemble active dependency injection tracking architecture layer structures
+    logger.info("[TEST] Assembling OOP component architecture nodes...")
     parser_service = PlaywrightParser()
     llm_service = GeminiPriceExtractor()
     
-    # Створюємо екземпляр класу чекера
-    checker = PriceChecker(db_path=db_path, parser=parser_service, extractor=llm_service)
+    # Inject the actual database manager instance into the business director controller
+    checker = PriceChecker(db_manager=db_manager, parser=parser_service, extractor=llm_service)
     
-    # Крок 5: Автоматичний запуск логіки об'єктного чекера
-    logger.info("[TEST] Автоматично викликаємо checker.check_all_prices()...")
+    # Step 5: Execute un-mocked edge pricing lookup update tasks
+    logger.info("[TEST] Programmatically invoking live pricing evaluator: checker.check_all_prices()...")
     try:
         checker.check_all_prices()
-        logger.info("🏁 [TEST] ООП-інтеграційний тест успішно завершено. Перевірте Telegram!")
+        logger.info("🏁 [TEST] OOP Integration integration pipeline routine evaluation successful. Verify chat!")
     except Exception as e:
-        pytest.fail(f"Об'єктний чекер впав під час тестування: {e}")
+        pytest.fail(f"Active pricing processing engine context crashed during live test execution: {e}")
