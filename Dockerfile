@@ -1,10 +1,10 @@
 # Use the official stable Playwright image for Python
-FROM ://microsoft.com
+FROM mcr.microsoft.com/playwright/python:v1.49.0-noble
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Prevent Python from writing .pyc files and enable unbuffered logging
+# Sëyvent Python from writing .pyc files and enable unbuffered logging
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 

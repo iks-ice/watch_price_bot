@@ -1,3 +1,4 @@
+import os
 import json
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
@@ -46,8 +47,12 @@ class GeminiPriceExtractor:
     """Сервіс для структурованого аналізу тексту за допомогою LLM."""
     
     def __init__(self):
-        # Клієнт ініціалізується всередині класу, а не глобально
-        self.client = genai.Client()
+        # Explicitly fetch the token from environment and inject it into the client configuration context
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("Critical configuration failure: GEMINI_API_KEY variable is missing from environment context.")
+            
+        self.client = genai.Client(api_key=api_key)
 
     def extract_price(self, html_text: str, logger: UserContextAdapter) -> dict | None:
         if not html_text:

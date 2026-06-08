@@ -2,6 +2,15 @@
 __pycache__/
 *.py[codz]
 *$py.class
+*.pyc
+
+# Production application runtime persistent file caches
+data/
+logs/
+
+# Local python environment configurations
+.pytest_cache/
+pytest.ini
 
 # C extensions
 *.so
