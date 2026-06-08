@@ -1,0 +1,61 @@
+name: CI/CD Production Pipeline
+
+# Trigger the workflow on every push to the main branch
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # Stage 1: Continuous Integration (Testing)
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout codebase
+      uses: actions/checkout@v4
+
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Execute Pytest Suite
+      run: |
+        # Run only unit tests to avoid requiring real API tokens or Playwright browsers in CI
+        pytest tests/test_price_logic.py -v
+
+  # Stage 2: Continuous Deployment (Delivery to Hetzner VPS)
+  deploy:
+    name: Deploy to Hetzner VPS
+    needs: test # Only execute deployment if the test suite passes successfully
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Execute Remote SSH Commands over Secure Tunnel
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /root/watch_price_bot
+          
+          # Pull the latest synchronized code changes from GitHub
+          git pull origin main
+          
+          # Rebuild the production application containers with BuildKit
+          docker compose build --no-cache price_bot
+          
+          # Gracefully recreate and launch the Telegram Bot daemon
+          docker compose up -d --force-recreate price_bot
+          
+          # Clear unused legacy Docker dangling images to preserve VPS storage space
+          docker image prune -f
+
